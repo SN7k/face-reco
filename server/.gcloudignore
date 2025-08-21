@@ -1,0 +1,31 @@
+# This file controls what files are sent to Google Cloud Build.
+# See: https://cloud.google.com/build/docs/optimize-builds/use-gcloudignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+
+# Local data and artifacts
+uploads/
+*.db
+*.log
+
+# VCS/Editors
+.git/
+.gitignore
+.vscode/
+.DS_Store
+
+# Node (in case any got copied here)
+node_modules/
+
+# Misc
+*.tmp
