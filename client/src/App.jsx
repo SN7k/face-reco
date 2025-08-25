@@ -9,10 +9,14 @@ export default function App() {
   const [streaming, setStreaming] = useState(false)
   const timerRef = useRef(null)
   const [live, setLive] = useState(false)
+  const [facing, setFacing] = useState('user') // 'user' | 'environment'
 
   const start = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      // Stop existing tracks before switching
+      const current = videoRef.current && videoRef.current.srcObject
+      if (current && current.getTracks) current.getTracks().forEach(t => t.stop())
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } })
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         setStreaming(true)
@@ -21,6 +25,12 @@ export default function App() {
     } catch (e) {
       setMsg('Failed to start camera: ' + e); setOk(false)
     }
+  }
+
+  const switchCamera = async () => {
+    setFacing(prev => prev === 'user' ? 'environment' : 'user')
+    setMsg('Switching camera...')
+    try { await start() } catch {}
   }
 
   const verify = async () => {
@@ -113,6 +123,7 @@ export default function App() {
           <canvas ref={canvasRef} style={{ display: 'none' }} />
           <div className="actions">
             <button className="btn btn-outline" onClick={start} type="button">Start Camera</button>
+            <button className="btn" onClick={switchCamera} type="button">Switch Camera</button>
             <button className="btn btn-primary" onClick={verify} type="button">Capture & Verify</button>
             {!live && <button className="btn" onClick={startLive} type="button">Start Live Verify</button>}
             {live && <button className="btn btn-outline" onClick={stopLive} type="button">Stop Live</button>}

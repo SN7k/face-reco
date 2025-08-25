@@ -8,10 +8,14 @@ export default function CaptureForm() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const [streaming, setStreaming] = useState(false)
+  const [facing, setFacing] = useState('environment') // 'user' | 'environment'
 
   const start = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      // Stop existing tracks before switching
+      const current = videoRef.current && videoRef.current.srcObject
+      if (current && current.getTracks) current.getTracks().forEach(t => t.stop())
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } })
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         setStreaming(true)
@@ -20,6 +24,12 @@ export default function CaptureForm() {
     } catch (e) {
       setMsg('Failed to start camera: ' + e); setOk(false)
     }
+  }
+
+  const switchCamera = async () => {
+    setFacing(prev => prev === 'user' ? 'environment' : 'user')
+    setMsg('Switching camera...')
+    try { await start() } catch {}
   }
 
   const capture = async () => {
@@ -75,6 +85,7 @@ export default function CaptureForm() {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       <div className="actions">
         <button className="btn btn-outline" type="button" onClick={start}>Start Camera</button>
+        <button className="btn" type="button" onClick={switchCamera}>Switch Camera</button>
         <button className="btn btn-primary" type="button" onClick={capture}>Capture & Upload</button>
       </div>
       <div className={`status ${ok ? 'ok' : 'err'}`}>{msg}</div>
