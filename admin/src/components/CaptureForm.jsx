@@ -9,6 +9,8 @@ export default function CaptureForm() {
   const canvasRef = useRef(null)
   const [streaming, setStreaming] = useState(false)
   const [facing, setFacing] = useState('environment') // 'user' | 'environment'
+  const [cameras, setCameras] = useState([])
+  const cameraIdxRef = useRef(0)
 
   const startWithFacing = async (targetFacing) => {
     try {
@@ -31,6 +33,10 @@ export default function CaptureForm() {
       }
       setFacing(targetFacing)
       setMsg('Camera started'); setOk(true)
+      // Populate device list
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const vids = devices.filter(d => d.kind === 'videoinput')
+      setCameras(vids)
     } catch (e) {
       setMsg('Failed to start camera: ' + e); setOk(false)
     }
@@ -42,6 +48,26 @@ export default function CaptureForm() {
     const next = facing === 'user' ? 'environment' : 'user'
     setMsg('Switching camera...')
     try { await startWithFacing(next) } catch {}
+  }
+
+  const nextDevice = async () => {
+    try {
+      const devices = cameras.length ? cameras : (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput')
+      if (!devices.length) { setMsg('No cameras found'); return }
+      cameraIdxRef.current = (cameraIdxRef.current + 1) % devices.length
+      const target = devices[cameraIdxRef.current]
+      const current = videoRef.current && videoRef.current.srcObject
+      if (current && current.getTracks) current.getTracks().forEach(t => t.stop())
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: target.deviceId } } })
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        setStreaming(true)
+      }
+      setCameras(devices)
+      setMsg(`Switched to device: ${target.label || cameraIdxRef.current + 1}`)
+    } catch (e) {
+      setMsg('Failed to switch device: ' + e)
+    }
   }
 
   const capture = async () => {
@@ -98,6 +124,7 @@ export default function CaptureForm() {
       <div className="actions">
         <button className="btn btn-outline" type="button" onClick={start}>Start Camera</button>
         <button className="btn" type="button" onClick={switchCamera}>Switch Camera</button>
+        <button className="btn" type="button" onClick={nextDevice}>Next Camera</button>
         <button className="btn btn-primary" type="button" onClick={capture}>Capture & Upload</button>
       </div>
       <div className={`status ${ok ? 'ok' : 'err'}`}>{msg}</div>
