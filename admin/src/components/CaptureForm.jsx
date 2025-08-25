@@ -10,26 +10,38 @@ export default function CaptureForm() {
   const [streaming, setStreaming] = useState(false)
   const [facing, setFacing] = useState('environment') // 'user' | 'environment'
 
-  const start = async () => {
+  const startWithFacing = async (targetFacing) => {
     try {
-      // Stop existing tracks before switching
       const current = videoRef.current && videoRef.current.srcObject
       if (current && current.getTracks) current.getTracks().forEach(t => t.stop())
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } })
+      let stream = null
+      // Try exact, then ideal, then default
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: targetFacing } } })
+      } catch (_) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: targetFacing } } })
+        } catch (__) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        }
+      }
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         setStreaming(true)
       }
+      setFacing(targetFacing)
       setMsg('Camera started'); setOk(true)
     } catch (e) {
       setMsg('Failed to start camera: ' + e); setOk(false)
     }
   }
 
+  const start = async () => startWithFacing(facing)
+
   const switchCamera = async () => {
-    setFacing(prev => prev === 'user' ? 'environment' : 'user')
+    const next = facing === 'user' ? 'environment' : 'user'
     setMsg('Switching camera...')
-    try { await start() } catch {}
+    try { await startWithFacing(next) } catch {}
   }
 
   const capture = async () => {
