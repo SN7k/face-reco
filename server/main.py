@@ -9,6 +9,7 @@ from pathlib import Path
 import os
 import logging
 from fastapi import HTTPException
+from models.face_recognition import preload_models
 
 # Configure logging for Cloud Run
 logging.basicConfig(
@@ -46,6 +47,9 @@ async def startup_event():
         uploads_dir = Path("uploads")
         uploads_dir.mkdir(exist_ok=True)
         logger.info("Uploads directory ready")
+        # Preload face model to reduce first-request latency
+        preload_models()
+        logger.info("Face model preloaded")
         
     except Exception as e:
         logger.error(f"Startup error: {e}")

@@ -15,6 +15,8 @@ class Settings:
     
     # Face recognition settings
     match_threshold: float = float(os.getenv("MATCH_THRESHOLD", "0.6"))
+    # Deduplicate attendance within this many seconds (e.g., 300 = 5 minutes)
+    attendance_dedup_seconds: int = int(os.getenv("ATTENDANCE_DEDUP_SECONDS", "300"))
     
     # Database configuration
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./backend.db")

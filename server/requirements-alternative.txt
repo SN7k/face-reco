@@ -1,0 +1,23 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+python-multipart==0.0.20
+
+# Cloud & storage
+google-cloud-storage==3.3.0
+
+# DB
+sqlalchemy==2.0.43
+psycopg2-binary==2.9.10
+
+# Alternative face recognition stack - better Python 3.13 compatibility
+face-recognition==1.3.0
+opencv-python-headless==4.12.0.88
+numpy==2.3.2
+dlib==19.24.2
+
+# Config
+python-dotenv==1.1.1
+
+# Framework pins used by FastAPI
+starlette==0.47.2
+pydantic==2.11.7

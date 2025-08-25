@@ -5,9 +5,11 @@ import os
 
 
 def extract_face_embedding(image_bytes: bytes) -> np.ndarray:
-    """Extract face embedding from raw image bytes using DeepFace (Facenet).
+    """Extract a single-face embedding from raw image bytes using DeepFace (Facenet).
 
-    Uses a Windows-safe temp file pattern (mkstemp) so the file can be read by OpenCV.
+    - Requires exactly one detected face.
+    - Raises ValueError with clear messages for 0 or multiple faces.
+    - Uses a Windows-safe temp file pattern (mkstemp) so the file can be read by OpenCV.
     """
     fd, path = tempfile.mkstemp(suffix=".jpg")
     try:
@@ -18,14 +20,29 @@ def extract_face_embedding(image_bytes: bytes) -> np.ndarray:
             model_name="Facenet",
             enforce_detection=True,
         )
-        if isinstance(analysis, list) and len(analysis) > 0 and "embedding" in analysis[0]:
-            return np.asarray(analysis[0]["embedding"], dtype=np.float32)
-        raise ValueError("No embedding found in the analysis output")
+        if not isinstance(analysis, list):
+            raise ValueError("Unexpected DeepFace output")
+        if len(analysis) == 0:
+            raise ValueError("No face detected")
+        if len(analysis) > 1:
+            raise ValueError("Multiple faces detected; provide a single-face image")
+        if "embedding" not in analysis[0]:
+            raise ValueError("No embedding found in the analysis output")
+        return np.asarray(analysis[0]["embedding"], dtype=np.float32)
     finally:
         try:
             os.remove(path)
         except Exception:
             pass
+
+
+def preload_models() -> None:
+    """Preload the Facenet model to avoid first-request latency."""
+    try:
+        _ = DeepFace.build_model("Facenet")
+    except Exception:
+        # Best-effort preload; actual requests will still try to load if needed
+        pass
 
 
 def embedding_to_bytes(embedding: np.ndarray) -> bytes:

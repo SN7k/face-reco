@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form, File, Query
 from sqlalchemy.orm import Session
 from db import SessionLocal, User, Attendance
 from utils.storage import upload_bytes_to_gcp
 from models.face_recognition import extract_face_embedding, embedding_to_bytes
+from fastapi import status
 
 router = APIRouter()
 
@@ -42,9 +43,12 @@ async def upload_face(
         return {"message": "User added successfully", "user_id": new_user.id}
     except HTTPException:
         raise
+    except ValueError as ve:
+        # Face detection/validation errors -> 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
     except Exception as e:
-        # Surface a clear message to the client (still JSON)
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        # Other unexpected errors -> 500
+        raise HTTPException(status_code=500, detail="Upload failed")
 
 
 @router.get("/users")
@@ -74,3 +78,29 @@ async def list_attendance(db: Session = Depends(get_db)):
         }
         for a, u in rows
     ]
+
+
+@router.delete("/attendance/{attendance_id}")
+async def delete_attendance_item(attendance_id: int, db: Session = Depends(get_db)):
+    row = db.query(Attendance).filter(Attendance.id == attendance_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Attendance not found")
+    db.delete(row)
+    db.commit()
+    return {"deleted": 1, "attendance_id": attendance_id}
+
+
+@router.delete("/attendance")
+async def delete_attendance(
+    user_id: int | None = Query(None, description="If provided, delete only this user's attendance"),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Attendance)
+    if user_id is not None:
+        q = q.filter(Attendance.user_id == user_id)
+    count = q.count()
+    if count == 0:
+        return {"deleted": 0}
+    q.delete(synchronize_session=False)
+    db.commit()
+    return {"deleted": count, "user_id": user_id}
