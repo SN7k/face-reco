@@ -17,14 +17,32 @@ export default function CaptureForm() {
       const current = videoRef.current && videoRef.current.srcObject
       if (current && current.getTracks) current.getTracks().forEach(t => t.stop())
       let stream = null
+      // Prefer selecting deviceId explicitly on mobile for more reliable switching
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const vids = devices.filter(d => d.kind === 'videoinput')
+        const pickByLabel = (want) => {
+          const kw = want === 'environment' ? ['back', 'rear', 'environment'] : ['front', 'user']
+          const m = vids.find(v => (v.label || '').toLowerCase().split(/[\s\-_/]/).some(tok => kw.includes(tok)))
+          return m || null
+        }
+        let target = pickByLabel(targetFacing)
+        if (!target) {
+          if (vids.length >= 2) target = targetFacing === 'environment' ? vids[vids.length - 1] : vids[0]
+          else target = vids[0] || null
+        }
+        if (target) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: target.deviceId } } })
+        }
+      } catch (_) {}
       // Try exact, then ideal, then default
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: targetFacing } } })
+        if (!stream) stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: targetFacing } } })
       } catch (_) {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: targetFacing } } })
+          if (!stream) stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: targetFacing } } })
         } catch (__) {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true })
+          if (!stream) stream = await navigator.mediaDevices.getUserMedia({ video: true })
         }
       }
       if (videoRef.current) {
