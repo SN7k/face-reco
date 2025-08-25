@@ -7,6 +7,8 @@ export default function App() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const [streaming, setStreaming] = useState(false)
+  const timerRef = useRef(null)
+  const [live, setLive] = useState(false)
 
   const start = async () => {
     try {
@@ -42,7 +44,45 @@ export default function App() {
     }, 'image/jpeg')
   }
 
+  const startLive = async () => {
+    if (!streaming) { await start() }
+    if (timerRef.current) return
+    setLive(true)
+    const INTERVAL_MS = 2000
+    const tick = async () => {
+      const video = videoRef.current
+      const canvas = canvasRef.current
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(async (blob) => {
+        const fd = new FormData()
+        fd.append('file', blob, 'frame.jpg')
+        try {
+          const res = await fetch(API_ENDPOINTS.STREAM, { method: 'POST', body: fd })
+          const data = await res.json()
+          if (res.ok && data.user_id) {
+            setMsg(`Matched: ${data.user_id} (created=${data.created ? 'yes' : 'no'})`); setOk(true)
+          } else {
+            const sc = typeof data.score === 'number' ? ` (score=${data.score.toFixed(3)})` : ''
+            setMsg(`No match${sc}`); setOk(false)
+          }
+        } catch (e) {
+          setMsg(String(e)); setOk(false)
+        }
+      }, 'image/jpeg')
+    }
+    timerRef.current = setInterval(tick, INTERVAL_MS)
+    setMsg('Live verification started'); setOk(true)
+  }
+
+  const stopLive = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    setLive(false)
+    setMsg('Live verification stopped')
+  }
+
   useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current)
     const v = videoRef.current
     const s = v && v.srcObject
     if (s && s.getTracks) s.getTracks().forEach(t => t.stop())
@@ -58,13 +98,15 @@ export default function App() {
       </div>
       <div className="card">
         <h3>Verify Your Attendance</h3>
-        <p className="helper">Allow camera permissions, then click Verify to submit a snapshot.</p>
+        <p className="helper">Use single capture or Live Verify to stream frames every 2s.</p>
         <div className="media">
-          <video className="video" ref={videoRef} autoPlay playsInline width={320} height={240} />
-          <canvas ref={canvasRef} width={320} height={240} style={{ display: 'none' }} />
+          <video className="video" ref={videoRef} autoPlay playsInline width={800} height={600} />
+          <canvas ref={canvasRef} width={800} height={600} style={{ display: 'none' }} />
           <div className="actions">
             <button className="btn btn-outline" onClick={start} type="button">Start Camera</button>
             <button className="btn btn-primary" onClick={verify} type="button">Capture & Verify</button>
+            {!live && <button className="btn" onClick={startLive} type="button">Start Live Verify</button>}
+            {live && <button className="btn btn-outline" onClick={stopLive} type="button">Stop Live</button>}
           </div>
           <div className={`status ${ok ? 'ok' : 'err'}`}>{msg}</div>
         </div>

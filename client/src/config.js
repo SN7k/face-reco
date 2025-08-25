@@ -7,6 +7,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localho
 // API Endpoints
 export const API_ENDPOINTS = {
   MATCH: `${API_BASE_URL}/match/`,
+  STREAM: `${API_BASE_URL}/match/stream`,
   HEALTH: `${API_BASE_URL}/health`,
   READY: `${API_BASE_URL}/ready`
 }

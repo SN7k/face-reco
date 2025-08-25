@@ -67,8 +67,8 @@ export default function CaptureForm() {
         <div className="label">Name</div>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
-      <video className="video" ref={videoRef} autoPlay playsInline width={320} height={240} />
-      <canvas ref={canvasRef} width={320} height={240} style={{ display: 'none' }} />
+      <video className="video" ref={videoRef} autoPlay playsInline width={800} height={600} />
+      <canvas ref={canvasRef} width={800} height={600} style={{ display: 'none' }} />
       <div className="actions">
         <button className="btn btn-outline" type="button" onClick={start}>Start Camera</button>
         <button className="btn btn-primary" type="button" onClick={capture}>Capture & Upload</button>
