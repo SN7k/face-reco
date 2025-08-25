@@ -27,6 +27,10 @@ export default function CaptureForm() {
     if (!name) { setMsg('Enter name'); setOk(false); return }
     const video = videoRef.current
     const canvas = canvasRef.current
+    if (video.videoWidth && video.videoHeight) {
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+    }
     const ctx = canvas.getContext('2d')
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     canvas.toBlob(async (blob) => {
@@ -67,8 +71,8 @@ export default function CaptureForm() {
         <div className="label">Name</div>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
-      <video className="video" ref={videoRef} autoPlay playsInline width={800} height={600} />
-      <canvas ref={canvasRef} width={800} height={600} style={{ display: 'none' }} />
+      <video className="video" ref={videoRef} autoPlay playsInline />
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
       <div className="actions">
         <button className="btn btn-outline" type="button" onClick={start}>Start Camera</button>
         <button className="btn btn-primary" type="button" onClick={capture}>Capture & Upload</button>
